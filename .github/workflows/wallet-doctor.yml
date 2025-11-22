@@ -1,0 +1,28 @@
+name: Wallet Doctor (daily)
+
+on:
+  schedule:
+    # runs daily at 02:00 IST (cron uses UTC). 02:00 IST = 20:30 UTC previous day -> run at 20:30 UTC
+    - cron: '30 20 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-wallet-doctor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run walletDoctor
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+        run: |
+          npm run walletDoctor
