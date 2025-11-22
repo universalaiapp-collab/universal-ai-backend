@@ -9,70 +9,76 @@ permissions:
 jobs:
   run-wallet-doctor:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout repository (full)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Print runner info + repo root
+      - name: Print runner info + repo root (debug)
         run: |
           echo "=== runner info ==="
           uname -a || true
           echo "USER: $(whoami)"
           echo "WORKDIR: $(pwd)"
-          echo "LIST ROOT:"
-          ls -la
-          echo "LIST 1-level deep:"
-          find . -maxdepth 2 -type f -printf '%p\n' | sed -n '1,80p' || true
+          echo "LIST root (top 200 lines):"
+          ls -la | sed -n '1,200p' || true
+          echo "LIST level 1 files (showing some):"
+          find . -maxdepth 2 -type f -printf '%p\n' | sed -n '1,200p' || true
 
-      - name: Search for package-lock.json (all matches)
+      - name: Attempt to restore package-lock.json from origin/main then install
         run: |
-          echo "Searching for package-lock.json..."
-          find . -type f -name 'package-lock.json' -print || true
-          echo "--- end search ---"
+          echo "Attempting to fetch a package-lock.json from origin/main (if present) and run npm ci"
+          git fetch origin main --depth=1 || true
 
-      - name: Show first lines of every package-lock.json found
-        run: |
-          set -o pipefail || true
-          found=0
-          while IFS= read -r file; do
-            echo "---- FOUND: $file ----"
-            echo "PWD: $(pwd)"
-            head -n 20 "$file" || true
-            echo "---- ENDOF: $file ----"
-            found=1
-          done < <(find . -type f -name 'package-lock.json' -print)
-          if [ "$found" -eq 0 ]; then
-            echo "No package-lock.json found in repo workspace"
-          fi
+          # Try to write package-lock.json from remote origin/main if it exists
+          if git show origin/main:package-lock.json > /tmp/origin-package-lock.json 2>/dev/null; then
+            echo "Wrote /tmp/origin-package-lock.json from origin/main. Inspecting head:"
+            head -n 8 /tmp/origin-package-lock.json || true
 
-      - name: Choose directory and install dependencies (safe)
-        run: |
-          # find the lockfile; if many, pick the one closest to root (shortest path)
-          LOCKFILE=$(find . -type f -name 'package-lock.json' -print | awk -F/ '{ print NF, $0 }' | sort -n | cut -d' ' -f2- | head -n1 || true)
-          echo "Chosen lockfile: <$LOCKFILE>"
-          if [ -n "$LOCKFILE" ]; then
-            DIR=$(dirname "$LOCKFILE")
-            echo "Changing dir to $DIR"
+            # If repo already has package-lock.json file(s), choose the nearest to repo root, otherwise use the fetched one
+            FOUND_LOCAL=$(find . -type f -name 'package-lock.json' -print | awk -F/ '{ print NF, $0 }' | sort -n | cut -d' ' -f2- | head -n1 || true)
+            if [ -n "$FOUND_LOCAL" ]; then
+              echo "Found local package-lock.json at: $FOUND_LOCAL"
+              CHOSEN="$FOUND_LOCAL"
+            else
+              echo "No local lockfile found; using fetched origin lockfile at /tmp/origin-package-lock.json"
+              mv /tmp/origin-package-lock.json ./package-lock.json
+              CHOSEN=./package-lock.json
+            fi
+
+            # cd into dir containing chosen lockfile and run npm ci
+            DIR=$(dirname "$CHOSEN")
+            echo "Changing dir to: $DIR"
             cd "$DIR"
             echo "Running npm ci in $(pwd)"
             npm ci --prefer-offline --no-audit --no-fund
           else
-            echo "No lockfile found. Attempting npm install at repo root."
-            npm install --no-audit --no-fund
+            echo "No package-lock.json present on origin/main (or unable to read). Searching repo for any lockfile..."
+            FOUND_ANY=$(find . -type f -name 'package-lock.json' -print | awk -F/ '{ print NF, $0 }' | sort -n | cut -d' ' -f2- | head -n1 || true)
+            if [ -n "$FOUND_ANY" ]; then
+              echo "Found package-lock.json at: $FOUND_ANY"
+              DIR=$(dirname "$FOUND_ANY")
+              cd "$DIR"
+              echo "Running npm ci in $(pwd)"
+              npm ci --prefer-offline --no-audit --no-fund || {
+                echo "npm ci failed in $DIR; falling back to npm install"
+                npm install --no-audit --no-fund
+              }
+            else
+              echo "No lockfile found anywhere in repo workspace. Running npm install at repo root."
+              npm install --no-audit --no-fund
+            fi
           fi
         timeout-minutes: 15
 
       - name: Run wallet doctor script (if exists)
         run: |
-          if command -v node >/dev/null 2>&1; then
-            echo "Node present: $(node --version)"
-          fi
-          # If script exists in package.json (in the directory where we ran installs), run it
+          echo "Checking for wallet:doctor script in package.json for the current working directory..."
           if npm run | grep -q wallet:doctor; then
-            npm run wallet:doctor --if-present || echo "wallet:doctor script failed or not present"
+            echo "Found wallet:doctor script — running it now"
+            npm run wallet:doctor --if-present || echo "wallet:doctor script failed or is absent"
           else
-            echo "No wallet:doctor script found; skipping"
+            echo "No wallet:doctor script found in this package.json — skipping"
           fi
