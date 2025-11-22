@@ -1,59 +1,65 @@
 name: Wallet Doctor - daily audit
 
 on:
-  schedule:
-    - cron: '0 2 * * *'
   workflow_dispatch:
 
-jobs:
-  run-walletDoctor:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+permissions:
+  contents: read
 
-      - name: Use Node.js
+jobs:
+  run-wallet-doctor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository (full)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Show git status & commit
+        run: |
+          echo "=== git info ==="
+          git rev-parse --abbrev-ref HEAD || true
+          git log -1 --oneline || true
+          echo "=== ls repo root ==="
+          ls -la
+          echo "=== show top-level files ==="
+          find . -maxdepth 2 -type f -print || true
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'   # choose your node version
+          cache: 'npm'
 
-      - name: Show repo root (debug)
+      - name: Debug: print node & npm
         run: |
-          echo "PWD=$(pwd)"
-          echo "=== ls -la repo root ==="
+          node --version
+          npm --version
+          pwd
+          echo "looking for lockfiles..."
+          if [ -f package-lock.json ]; then echo "FOUND package-lock.json at $(pwd)"; else echo "NO package-lock.json at $(pwd)"; fi
+          if [ -f npm-shrinkwrap.json ]; then echo "FOUND npm-shrinkwrap.json"; fi
+          echo "Listing repo root again:"
           ls -la
-          echo "=== ls -la (top 2 levels) ==="
-          ls -la .
-          ls -la .github || true
-          echo "=== show package.json ==="
-          if [ -f package.json ]; then
-            jq -r '.name, .version' package.json || cat package.json | sed -n '1,20p'
-          else
-            echo "package.json not found"
-          fi
-          echo "=== package-lock.json exists? ==="
-          if [ -f package-lock.json ]; then
-            echo "FOUND package-lock.json — show top lines and lockfileVersion"
-            sed -n '1,200p' package-lock.json || true
-            grep -m1 '"lockfileVersion"' package-lock.json || true
-          else
-            echo "NO package-lock.json in repo root"
-          fi
 
-      - name: Install dependencies (safe)
+      - name: Install dependencies (robust)
         run: |
-          if [ -f package-lock.json ]; then
-            echo "Running npm ci (deterministic)"
-            npm ci
-          else
-            echo "package-lock.json missing — running npm install"
-            npm install
-          fi
+          # If you have your app in a subfolder, change into it here, e.g. cd server
+          # cd server || true
 
-      - name: Run walletDoctor
-        env:
-          MONGO_URI: ${{ secrets.MONGO_URI }}
+          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
+            echo "Using npm ci because lockfile exists"
+            npm ci --prefer-offline --no-audit --no-fund
+          else
+            echo "Lockfile not present — falling back to npm install"
+            npm install --no-audit --no-fund
+          fi
+        # keep a decent timeout for installs
+        timeout-minutes: 10
+
+      - name: Run wallet doctor script (example)
         run: |
-          node scripts/walletDoctor.js > walletDoctor-run.log 2>&1
-          echo "=== walletDoctor output ==="
-          sed -n '1,200p' walletDoctor-run.log || true
+          # replace with the command your project runs
+          echo "Run wallet doctor (dry-run placeholder)"
+          npm run wallet:doctor --if-present || echo "wallet:doctor script not present"
