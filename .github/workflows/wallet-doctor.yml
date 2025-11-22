@@ -2,8 +2,8 @@ name: Wallet Doctor - daily audit
 
 on:
   schedule:
-    - cron: '0 2 * * *'    # daily at 02:00 UTC
-  workflow_dispatch:      # allow manual runs from Actions UI
+    - cron: '0 2 * * *'
+  workflow_dispatch:
 
 jobs:
   run-walletDoctor:
@@ -17,14 +17,36 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install dependencies
+      - name: Show repo root (debug)
         run: |
-          echo "Checking for package-lock.json..."
+          echo "PWD=$(pwd)"
+          echo "=== ls -la repo root ==="
+          ls -la
+          echo "=== ls -la (top 2 levels) ==="
+          ls -la .
+          ls -la .github || true
+          echo "=== show package.json ==="
+          if [ -f package.json ]; then
+            jq -r '.name, .version' package.json || cat package.json | sed -n '1,20p'
+          else
+            echo "package.json not found"
+          fi
+          echo "=== package-lock.json exists? ==="
           if [ -f package-lock.json ]; then
-            echo "package-lock.json found — running npm ci (deterministic install)"
+            echo "FOUND package-lock.json — show top lines and lockfileVersion"
+            sed -n '1,200p' package-lock.json || true
+            grep -m1 '"lockfileVersion"' package-lock.json || true
+          else
+            echo "NO package-lock.json in repo root"
+          fi
+
+      - name: Install dependencies (safe)
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "Running npm ci (deterministic)"
             npm ci
           else
-            echo "package-lock.json NOT found — running npm install"
+            echo "package-lock.json missing — running npm install"
             npm install
           fi
 
