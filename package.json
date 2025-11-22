@@ -1,7 +1,12 @@
 {
   "name": "universal-ai-backend",
   "version": "1.0.0",
+  "description": "Backend utilities and ops scripts for Universal AI (wallet auditing & repair)",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/universalaiapp-collab/universal-ai-backend.git"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon src/index.ts",
@@ -35,5 +40,8 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
-  "description": "Ops scripts and small backend utilities for Universal AI"
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  }
 }
