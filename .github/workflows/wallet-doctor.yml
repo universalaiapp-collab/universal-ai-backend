@@ -9,7 +9,8 @@ permissions:
 jobs:
   run-wallet-doctor:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
+
     steps:
       - name: Checkout repository (full)
         uses: actions/checkout@v4
@@ -27,58 +28,73 @@ jobs:
           echo "LIST level 1 files (showing some):"
           find . -maxdepth 2 -type f -printf '%p\n' | sed -n '1,200p' || true
 
-      - name: Attempt to restore package-lock.json from origin/main then install
+      - name: Attempt to restore package-lock.json from origin/main then install (robust)
         run: |
-          echo "Attempting to fetch a package-lock.json from origin/main (if present) and run npm ci"
+          echo "=== restore/install step start ==="
+          set -o pipefail || true
+          # Fetch latest origin/main so we can read from it
           git fetch origin main --depth=1 || true
 
-          # Try to write package-lock.json from remote origin/main if it exists
+          # Try reading package-lock.json from origin/main into a temporary file
           if git show origin/main:package-lock.json > /tmp/origin-package-lock.json 2>/dev/null; then
-            echo "Wrote /tmp/origin-package-lock.json from origin/main. Inspecting head:"
+            echo "Successfully fetched package-lock.json from origin/main -> /tmp/origin-package-lock.json"
+            echo "Head of fetched lockfile (first 8 lines):"
             head -n 8 /tmp/origin-package-lock.json || true
-
-            # If repo already has package-lock.json file(s), choose the nearest to repo root, otherwise use the fetched one
-            FOUND_LOCAL=$(find . -type f -name 'package-lock.json' -print | awk -F/ '{ print NF, $0 }' | sort -n | cut -d' ' -f2- | head -n1 || true)
-            if [ -n "$FOUND_LOCAL" ]; then
-              echo "Found local package-lock.json at: $FOUND_LOCAL"
-              CHOSEN="$FOUND_LOCAL"
-            else
-              echo "No local lockfile found; using fetched origin lockfile at /tmp/origin-package-lock.json"
-              mv /tmp/origin-package-lock.json ./package-lock.json
-              CHOSEN=./package-lock.json
-            fi
-
-            # cd into dir containing chosen lockfile and run npm ci
-            DIR=$(dirname "$CHOSEN")
-            echo "Changing dir to: $DIR"
-            cd "$DIR"
-            echo "Running npm ci in $(pwd)"
-            npm ci --prefer-offline --no-audit --no-fund
+            FETCHED=1
           else
-            echo "No package-lock.json present on origin/main (or unable to read). Searching repo for any lockfile..."
-            FOUND_ANY=$(find . -type f -name 'package-lock.json' -print | awk -F/ '{ print NF, $0 }' | sort -n | cut -d' ' -f2- | head -n1 || true)
-            if [ -n "$FOUND_ANY" ]; then
-              echo "Found package-lock.json at: $FOUND_ANY"
-              DIR=$(dirname "$FOUND_ANY")
-              cd "$DIR"
-              echo "Running npm ci in $(pwd)"
-              npm ci --prefer-offline --no-audit --no-fund || {
-                echo "npm ci failed in $DIR; falling back to npm install"
-                npm install --no-audit --no-fund
-              }
-            else
-              echo "No lockfile found anywhere in repo workspace. Running npm install at repo root."
+            echo "No package-lock.json found on origin/main (or unable to read it)"
+            FETCHED=0
+          fi
+
+          # Find any local package-lock.json files (prefer the one closest to repo root)
+          local_lock=$(find . -type f -name 'package-lock.json' -print | awk -F/ '{ print NF, $0 }' | sort -n | cut -d' ' -f2- | head -n1 || true)
+          if [ -n "$local_lock" ]; then
+            echo "Found local package-lock.json at: $local_lock"
+            CHOSEN="$local_lock"
+          elif [ "$FETCHED" -eq 1 ]; then
+            echo "No local lockfile found; using fetched origin lockfile."
+            mv /tmp/origin-package-lock.json ./package-lock.json
+            CHOSEN="./package-lock.json"
+          else
+            echo "No lockfile anywhere (local or origin). Will run npm install at repo root."
+            CHOSEN=""
+          fi
+
+          # If we have a chosen lockfile, cd to its directory and run npm ci
+          if [ -n "$CHOSEN" ]; then
+            dir=$(dirname "$CHOSEN")
+            echo "Switching to directory: $dir"
+            cd "$dir"
+            echo "PWD: $(pwd)"
+            echo "Listing files in $(pwd):"
+            ls -la | sed -n '1,200p' || true
+            echo "Running npm ci (deterministic install) in $(pwd)"
+            npm ci --prefer-offline --no-audit --no-fund
+            exit_code=$?
+            if [ $exit_code -ne 0 ]; then
+              echo "npm ci failed with exit code $exit_code. Attempting npm install as fallback."
               npm install --no-audit --no-fund
             fi
+          else
+            echo "No lockfile chosen; running npm install in repo root $(pwd)"
+            npm install --no-audit --no-fund
           fi
-        timeout-minutes: 15
+          echo "=== restore/install step end ==="
+        timeout-minutes: 20
 
       - name: Run wallet doctor script (if exists)
         run: |
-          echo "Checking for wallet:doctor script in package.json for the current working directory..."
-          if npm run | grep -q wallet:doctor; then
-            echo "Found wallet:doctor script — running it now"
-            npm run wallet:doctor --if-present || echo "wallet:doctor script failed or is absent"
+          echo "=== wallet doctor step start ==="
+          # If package.json scripts exist in current directory, try to run wallet:doctor
+          if [ -f package.json ]; then
+            echo "package.json found in $(pwd)"
+            if npm run | grep -q wallet:doctor; then
+              echo "Found wallet:doctor script — running it now"
+              npm run wallet:doctor --if-present || echo "wallet:doctor script failed or returned non-zero"
+            else
+              echo "No wallet:doctor script in this package.json — skipping"
+            fi
           else
-            echo "No wallet:doctor script found in this package.json — skipping"
+            echo "No package.json in current directory; skipping wallet:doctor"
           fi
+          echo "=== wallet doctor step end ==="
