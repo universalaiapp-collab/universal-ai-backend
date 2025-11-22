@@ -1,28 +1,29 @@
-name: Wallet Doctor (daily)
+name: Wallet Doctor - daily audit
 
 on:
   schedule:
-    # runs daily at 02:00 IST (cron uses UTC). 02:00 IST = 20:30 UTC previous day -> run at 20:30 UTC
-    - cron: '30 20 * * *'
-  workflow_dispatch:
+    - cron: '0 2 * * *'    # daily at 02:00 UTC
+  workflow_dispatch:      # allow manual runs from Actions UI
 
 jobs:
-  run-wallet-doctor:
+  run-walletDoctor:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: Install deps
+      - name: Install dependencies
         run: npm ci
 
       - name: Run walletDoctor
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
         run: |
-          npm run walletDoctor
+          node scripts/walletDoctor.js > walletDoctor-run.log 2>&1
+          echo "=== walletDoctor output ==="
+          sed -n '1,200p' walletDoctor-run.log || true
