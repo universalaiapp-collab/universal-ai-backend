@@ -17,8 +17,17 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
+         - name: Install dependencies
+        run: |
+          echo "Checking for package-lock.json..."
+          if [ -f package-lock.json ]; then
+            echo "package-lock.json found — running npm ci (deterministic install)"
+            npm ci
+          else
+            echo "package-lock.json NOT found — running npm install"
+            npm install
+          fi
+
 
       - name: Run walletDoctor
         env:
