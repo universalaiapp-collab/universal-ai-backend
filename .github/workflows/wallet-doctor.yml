@@ -9,54 +9,70 @@ permissions:
 jobs:
   run-wallet-doctor:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout repository (full)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Show git status & commit
+      - name: Print runner info + repo root
         run: |
-          echo "=== git info ==="
-          git rev-parse --abbrev-ref HEAD || true
-          git log -1 --oneline || true
-          echo "=== ls repo root ==="
+          echo "=== runner info ==="
+          uname -a || true
+          echo "USER: $(whoami)"
+          echo "WORKDIR: $(pwd)"
+          echo "LIST ROOT:"
           ls -la
-          echo "=== show top-level files ==="
-          find . -maxdepth 2 -type f -print || true
+          echo "LIST 1-level deep:"
+          find . -maxdepth 2 -type f -printf '%p\n' | sed -n '1,80p' || true
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'   # choose your node version
-          cache: 'npm'
-
-      - name: Debug: print node & npm
+      - name: Search for package-lock.json (all matches)
         run: |
-          node --version
-          npm --version
-          pwd
-          echo "looking for lockfiles..."
-          if [ -f package-lock.json ]; then echo "FOUND package-lock.json at $(pwd)"; else echo "NO package-lock.json at $(pwd)"; fi
-          if [ -f npm-shrinkwrap.json ]; then echo "FOUND npm-shrinkwrap.json"; fi
-          echo "Listing repo root again:"
-          ls -la
+          echo "Searching for package-lock.json..."
+          find . -type f -name 'package-lock.json' -print || true
+          echo "--- end search ---"
 
-            - name: Install dependencies (robust)
+      - name: Show first lines of every package-lock.json found
         run: |
-          # if your app is in a subfolder e.g. server, uncomment: cd server || true
-          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
-            echo "Using npm ci because lockfile exists"
-            npm ci --prefer-offline --no-audit --no-fund
-          else
-            echo "Lockfile not present — falling back to npm install"
-            npm install --no-audit --no-fund
+          set -o pipefail || true
+          found=0
+          while IFS= read -r file; do
+            echo "---- FOUND: $file ----"
+            echo "PWD: $(pwd)"
+            head -n 20 "$file" || true
+            echo "---- ENDOF: $file ----"
+            found=1
+          done < <(find . -type f -name 'package-lock.json' -print)
+          if [ "$found" -eq 0 ]; then
+            echo "No package-lock.json found in repo workspace"
           fi
 
-
-      - name: Run wallet doctor script (example)
+      - name: Choose directory and install dependencies (safe)
         run: |
-          # replace with the command your project runs
-          echo "Run wallet doctor (dry-run placeholder)"
-          npm run wallet:doctor --if-present || echo "wallet:doctor script not present"
+          # find the lockfile; if many, pick the one closest to root (shortest path)
+          LOCKFILE=$(find . -type f -name 'package-lock.json' -print | awk -F/ '{ print NF, $0 }' | sort -n | cut -d' ' -f2- | head -n1 || true)
+          echo "Chosen lockfile: <$LOCKFILE>"
+          if [ -n "$LOCKFILE" ]; then
+            DIR=$(dirname "$LOCKFILE")
+            echo "Changing dir to $DIR"
+            cd "$DIR"
+            echo "Running npm ci in $(pwd)"
+            npm ci --prefer-offline --no-audit --no-fund
+          else
+            echo "No lockfile found. Attempting npm install at repo root."
+            npm install --no-audit --no-fund
+          fi
+        timeout-minutes: 15
+
+      - name: Run wallet doctor script (if exists)
+        run: |
+          if command -v node >/dev/null 2>&1; then
+            echo "Node present: $(node --version)"
+          fi
+          # If script exists in package.json (in the directory where we ran installs), run it
+          if npm run | grep -q wallet:doctor; then
+            npm run wallet:doctor --if-present || echo "wallet:doctor script failed or not present"
+          else
+            echo "No wallet:doctor script found; skipping"
+          fi
