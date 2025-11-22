@@ -43,11 +43,9 @@ jobs:
           echo "Listing repo root again:"
           ls -la
 
-      - name: Install dependencies (robust)
+            - name: Install dependencies (robust)
         run: |
-          # If you have your app in a subfolder, change into it here, e.g. cd server
-          # cd server || true
-
+          # if your app is in a subfolder e.g. server, uncomment: cd server || true
           if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
             echo "Using npm ci because lockfile exists"
             npm ci --prefer-offline --no-audit --no-fund
@@ -55,8 +53,7 @@ jobs:
             echo "Lockfile not present — falling back to npm install"
             npm install --no-audit --no-fund
           fi
-        # keep a decent timeout for installs
-        timeout-minutes: 10
+
 
       - name: Run wallet doctor script (example)
         run: |
