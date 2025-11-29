@@ -1,0 +1,5 @@
+﻿1) Implement robust retries & exponential backoff in provider adapters (OpenAI/Gemini) — add retry wrapper usage around provider calls.
+2) Full Gemini adapter 400/429 handling: inspect adapter response schema and add targeted error handling & safe auto-retry logic.
+3) CI: Add Docker image build + smoke test on CI (GitHub Actions or equivalent).
+4) Add unit/integration tests for adapters and retry logic; add coverage gate.
+5) Add more structured logs & metrics for provider failures (capture raw provider JSON into MetricsModel).
