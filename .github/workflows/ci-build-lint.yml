@@ -1,0 +1,26 @@
+﻿name: CI - Build & Lint
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install
+        run: npm ci
+      - name: Run TypeScript build
+        run: npx tsc -p tsconfig.json
+      - name: Run ESLint
+        run: npx eslint "src/**/*.{ts,js}" --ext .ts
+      - name: Health check (curl)
+        run: |
+          echo "Skipping runtime health check in CI. Add runtime smoke tests if you have a test environment."

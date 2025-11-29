@@ -20,14 +20,14 @@ export async function callOpenAI(prompt: string, opts: OpenAIOpts = {}): Promise
   const promptTokens = Math.max(0, Math.ceil((prompt?.length || 0) / 4));
   const completionTokens = opts.maxTokens ? Math.min(opts.maxTokens, 200) : 100;
 
-  if (opts.forceFail === 'openai') {
-    throw new Error('openai_forced_failure');
+  if (opts.forceFail === "openai") {
+    throw new Error("openai_forced_failure");
   }
 
-  const text = OpenAI (stub) reply for: ;
+  const text = `OpenAI (stub) reply for: ${String(prompt).slice(0, 200)}`;
   return {
-    provider: 'openai',
-    model: opts.model || 'openai/gpt-stub',
+    provider: "openai",
+    model: opts.model || "openai/gpt-stub",
     text,
     promptTokens,
     completionTokens
