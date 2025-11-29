@@ -3,3 +3,7 @@ logs/
 .env
 *.log
 .vscode/
+node_modules/
+dist/
+src-backup-tmp/
+*.bak.*
