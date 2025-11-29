@@ -1,11 +1,12 @@
 ﻿/**
- * Minimal typed OpenAI adapter stub.
- * Replace with real SDK calls later.
+ * Minimal OpenAI adapter (TypeScript)
+ * Replace or expand with real SDK calls later.
  */
+
 export type OpenAIOpts = {
   maxTokens?: number;
-  model?: string;
   forceFail?: string;
+  model?: string;
 };
 
 export type OpenAIResponse = {
@@ -17,20 +18,23 @@ export type OpenAIResponse = {
 };
 
 export async function callOpenAI(prompt: string, opts: OpenAIOpts = {}): Promise<OpenAIResponse> {
+  // compute rough token counts
   const promptTokens = Math.max(0, Math.ceil((prompt?.length || 0) / 4));
   const completionTokens = opts.maxTokens ? Math.min(opts.maxTokens, 200) : 100;
 
+  // test hook for forced failure (useful for local test)
   if (opts.forceFail === 'openai') {
     throw new Error('openai_forced_failure');
   }
 
-  const text = OpenAI (stub) reply for: ;
+  const text = `OpenAI stub response for: ${String(prompt).slice(0, 120)}`;
+
   return {
     provider: 'openai',
     model: opts.model || 'openai/gpt-stub',
     text,
     promptTokens,
-    completionTokens
+    completionTokens,
   };
 }
 
