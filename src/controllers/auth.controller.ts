@@ -15,7 +15,7 @@ export const signup = async (req: Request, res: Response) => {
 
     const user = await User.create({ email, password: hashed, name });
 
-    await Wallet.create({ userId: user._id });
+    await (Wallet as any).create({ userId: user._id });
 
     res.json({ msg: "Signup success" });
   } catch (e) {
@@ -42,3 +42,4 @@ export const login = async (req: Request, res: Response) => {
     res.status(500).json({ msg: "Error" });
   }
 };
+

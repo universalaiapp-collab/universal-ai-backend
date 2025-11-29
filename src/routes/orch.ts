@@ -1,6 +1,7 @@
 // src/routes/orch.ts
 import { Router, Request, Response } from "express";
-import { orchestratorChat, orchestratorController } from "../controllers/orch.controller";
+import * as orchController from '../controllers/orch.controller';
+const { orchestratorChat, orchestratorController } = orchController as any;
 
 const router = Router();
 
@@ -44,3 +45,4 @@ router.post("/embedding", (req: Request, res: Response) => {
 });
 
 export default router;
+

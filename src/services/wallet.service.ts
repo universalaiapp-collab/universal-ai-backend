@@ -3,13 +3,13 @@ import WalletModel from '../models/wallet.model';
 import mongoose from 'mongoose';
 
 export async function getWalletByUserId(userId: string) {
-  return WalletModel.findOne({ userId }).lean();
+  return (WalletModel as any).findOne({ userId }).lean();
 }
 
 export async function createOrGetWallet(userId: string, initialCredits = 0) {
-  const existing = await WalletModel.findOne({ userId });
+  const existing = await (WalletModel as any).findOne({ userId });
   if (existing) return existing;
-  return WalletModel.create({ userId, credits: initialCredits, reserved: 0 });
+  return (WalletModel as any).create({ userId, credits: initialCredits, reserved: 0 });
 }
 
 /**
@@ -18,7 +18,7 @@ export async function createOrGetWallet(userId: string, initialCredits = 0) {
  */
 export async function reserveCredits(userId: string, amount: number) {
   if (amount <= 0) return { success: true };
-  const res = await WalletModel.findOneAndUpdate(
+  const res = await (WalletModel as any).findOneAndUpdate(
     { userId, credits: { $gte: amount } },
     { $inc: { credits: -amount, reserved: amount } },
     { new: true }
@@ -32,7 +32,7 @@ export async function reserveCredits(userId: string, amount: number) {
 export async function finalizeDeduction(userId: string, amount: number, meta: any = {}) {
   if (amount <= 0) return;
   // decrement reserved by amount and add ledger entry
-  const res = await WalletModel.findOneAndUpdate(
+  const res = await (WalletModel as any).findOneAndUpdate(
     { userId, reserved: { $gte: amount } },
     {
       $inc: { reserved: -amount },
@@ -45,10 +45,12 @@ export async function finalizeDeduction(userId: string, amount: number, meta: an
 
 export async function refundReserved(userId: string, amount: number, reason = 'refund') {
   if (amount <= 0) return;
-  const res = await WalletModel.findOneAndUpdate(
+  const res = await (WalletModel as any).findOneAndUpdate(
     { userId, reserved: { $gte: amount } },
     { $inc: { reserved: -amount, credits: amount }, $push: { ledger: { amount, reason, at: new Date() } } },
     { new: true }
   );
   return res;
 }
+
+

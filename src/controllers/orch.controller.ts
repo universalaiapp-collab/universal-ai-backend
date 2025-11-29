@@ -1,94 +1,110 @@
 // src/controllers/orch.controller.ts
-import { Request, Response } from 'express';
-import { callOpenAI, callGemini } from '../services/providerAdapters';
-import * as walletService from '../services/wallet.service';
-import * as metricsService from '../services/metrics.service';
-import day2Config from '../config/day2Config';
+import { Request, Response, NextFunction } from "express";
+import { smartRoute } from "../engine/router";
+import { writeMetric } from "../lib/metrics"; // adapt path if needed
+import { logger } from "../lib/logger"; // optional, adapt or remove if you don't have a logger
 
-async function callProviderWithTimeout(providerFn: Function, prompt: string, opts: any, timeoutMs: number) {
-  return new Promise<any>((resolve, reject) => {
-    let finished = false;
-    const timer = setTimeout(() => {
-      if (finished) return;
-      finished = true;
-      reject(new Error('provider_timeout'));
-    }, timeoutMs);
+type ChatMessage = {
+  role: "system" | "user" | "assistant" | string;
+  content: string;
+};
 
-    providerFn(prompt, opts)
-      .then((r: any) => { if (finished) return; finished = true; clearTimeout(timer); resolve(r); })
-      .catch((err: any) => { if (finished) return; finished = true; clearTimeout(timer); reject(err); });
-  });
-}
-
-export async function orchController(req: Request, res: Response) {
-  const user = req.user as any;
-  const prompt: string = req.body?.prompt || '';
-  const maxTokens = req.body?.maxTokens;
-  const fallbackOrder: string[] = req.body?.fallbackOrder || ['openai', 'gemini'];
-  const forceFail = req.body?.forceFail; // for tests
-
-  const estTokens = (req as any).estimatedTokens || Math.ceil((prompt.length || 0) / 4) + (maxTokens || 100);
-  const costPerToken = 0.00001; // sample pricing; replace with your pricing calc
-  const estCost = estTokens * costPerToken;
-
-  // Reserve credits
-  const reserveResp = await walletService.reserveCredits(user.id, estCost);
-  if (!reserveResp.success) {
-    return res.status(402).json({ ok: false, error: 'insufficient_credits', message: 'Not enough credits. Please top up.' });
-  }
-  let charged = 0;
-  let usedMetrics: any = null;
+/**
+ * POST /api/v1/chat
+ * Body: { messages: ChatMessage[] }
+ */
+export async function postChatHandler(req: Request, res: Response, next: NextFunction) {
+  const startTs = Date.now();
+  const userId = (req.header("x-user-id") || "anonymous").toString();
 
   try {
-    let lastErr: any = null;
-    for (const provider of fallbackOrder) {
-      try {
-        const opts = { maxTokens, forceFail };
-        const timeoutMs = day2Config.providerTimeoutMs;
-        const resp = provider === 'openai'
-          ? await callProviderWithTimeout(callOpenAI, prompt, opts, timeoutMs)
-          : await callProviderWithTimeout(callGemini, prompt, opts, timeoutMs);
+    const body = req.body ?? {};
+    const bodyMessages = body.messages;
 
-        const totalTokens = resp.promptTokens + resp.completionTokens;
-        charged = totalTokens * costPerToken;
-
-        // finalize deduction (may be different from estCost)
-        await walletService.finalizeDeduction(user.id, charged, { provider: resp.provider, model: resp.model });
-
-        // record metrics
-        await metricsService.recordMetrics({
-          userId: user.id,
-          provider: resp.provider,
-          model: resp.model,
-          promptTokens: resp.promptTokens,
-          completionTokens: resp.completionTokens,
-          totalTokens,
-          estCost
-        });
-
-        usedMetrics = { provider: resp.provider, model: resp.model, totalTokens, charged };
-        return res.json({
-          ok: true,
-          message: 'success',
-          provider: resp.provider,
-          model: resp.model,
-          tokens: { promptTokens: resp.promptTokens, completionTokens: resp.completionTokens, totalTokens },
-          costCharged: charged,
-          text: resp.text
-        });
-      } catch (err) {
-        lastErr = err;
-        // continue to next provider
-      }
+    // Basic shape validation
+    if (!Array.isArray(bodyMessages) || bodyMessages.length === 0) {
+      return res.status(400).json({ ok: false, error: "messages array required" });
     }
 
-    // if we exit loop, all providers failed
-    // refund reserved
-    await walletService.refundReserved(user.id, estCost, 'provider_failure_refund');
-    return res.status(502).json({ ok: false, error: 'provider_failure', message: lastErr?.message || 'All providers failed' });
-  } catch (err) {
-    // on unexpected error, refund reserved
-    await walletService.refundReserved(user.id, estCost, 'unexpected_error_refund');
-    return res.status(500).json({ ok: false, error: 'internal_error', message: err?.message || 'Internal error' });
+    // Validate each message shape & lengths
+    const validatedMessages: ChatMessage[] = [];
+    for (let i = 0; i < bodyMessages.length; i++) {
+      const m = bodyMessages[i];
+      if (!m || typeof m !== "object") {
+        return res.status(400).json({ ok: false, error: `messages[${i}] must be an object` });
+      }
+      const role = typeof m.role === "string" ? m.role : "user";
+      const content = typeof m.content === "string" ? m.content.trim() : "";
+      if (!content) {
+        return res.status(400).json({ ok: false, error: `messages[${i}].content required` });
+      }
+      // Prevent huge single-message payloads (safety)
+      if (content.length > 20000) {
+        return res.status(413).json({ ok: false, error: `messages[${i}].content too large` });
+      }
+      validatedMessages.push({ role, content });
+    }
+
+    // Global size guard: too many messages
+    if (validatedMessages.length > 80) {
+      return res.status(413).json({ ok: false, error: "messages array too large" });
+    }
+
+    // Call smart router -> returns { provider, text, tried, ... }
+    const result = await smartRoute(validatedMessages, userId);
+
+    // write success metric (best-effort)
+    try {
+      await writeMetric?.({
+        timestamp: new Date(),
+        route: "/api/v1/chat",
+        provider: result?.provider ?? null,
+        userId,
+        durationMs: Date.now() - startTs,
+        statusCode: 200,
+        errorMessage: null,
+        meta: { tried: result?.tried ?? null },
+      });
+    } catch (mErr) {
+      // metric write should not block response
+      // eslint-disable-next-line no-console
+      console.warn("metric write failed", mErr);
+    }
+
+    return res.status(200).json({ ok: true, result });
+  } catch (err: any) {
+    const durationMs = Date.now() - startTs;
+    const message = String(err?.message ?? err ?? "unknown_error");
+
+    // write error metric (best-effort)
+    try {
+      await writeMetric?.({
+        timestamp: new Date(),
+        route: "/api/v1/chat",
+        provider: null,
+        userId,
+        durationMs,
+        statusCode: 500,
+        errorMessage: message,
+        meta: { stack: err?.stack ?? null },
+      });
+    } catch (mErr) {
+      // ignore
+      // eslint-disable-next-line no-console
+      console.warn("metric write failed", mErr);
+    }
+
+    // optional logger usage if you have one
+    try {
+      logger?.error?.({
+        msg: "postChatHandler error",
+        userId,
+        route: "/api/v1/chat",
+        error: message,
+        stack: err?.stack,
+      });
+    } catch {}
+
+    return res.status(500).json({ ok: false, error: message });
   }
 }

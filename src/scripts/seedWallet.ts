@@ -1,8 +1,8 @@
-// scripts/seedWallet.ts
+﻿// scripts/seedWallet.ts
 // usage: node scripts/seedWallet.js userEmail initialCredits
 import mongoose from 'mongoose';
-import WalletModel from '../src/models/wallet.model';
-import UserModel from '../src/models/user.model'; // OPTIONAL
+import WalletModel from '../models/wallet.model';
+import UserModel from '../models/user.model'; // OPTIONAL
 
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/universal-ai';
 
@@ -13,9 +13,9 @@ async function main() {
   const userId = args[0];
   const credits = Number(args[1]);
 
-  let w = await WalletModel.findOne({ userId });
+  let w = await (WalletModel as any).findOne({ userId });
   if (!w) {
-    w = await WalletModel.create({ userId, credits, reserved: 0, ledger: [] });
+    w = await (WalletModel as any).create({ userId, credits, reserved: 0, ledger: [] });
     console.log('Wallet created', w.toJSON());
   } else {
     w.credits = credits;
@@ -26,3 +26,5 @@ async function main() {
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
+
+

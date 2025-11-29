@@ -1,18 +1,8 @@
-// src/routes/orch.routes.ts
-import express from 'express';
-import { orchController } from '../controllers/orch.controller';
-import { rateLimiterMiddleware } from '../middleware/rateLimiter.middleware';
-import { quotaMiddleware } from '../middleware/quota.middleware';
-import { paywallMiddleware } from '../middleware/paywall.middleware';
+﻿import express from "express";
+import { postChatHandler } from "../controllers/orch.controller";
 
 const router = express.Router();
 
-router.post('/orch',
-  // assume authentication middleware runs before and sets req.user
-  rateLimiterMiddleware,
-  quotaMiddleware,
-  paywallMiddleware,
-  orchController
-);
+router.post("/api/v1/chat", postChatHandler);
 
 export default router;

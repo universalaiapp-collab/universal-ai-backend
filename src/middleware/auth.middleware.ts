@@ -73,7 +73,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     };
 
     try {
-      const wallet = await Wallet.findOne({ userId: req.user.id }).lean();
+      const wallet = await (Wallet as any).findOne({ userId: req.user.id }).lean();
       if (wallet) req.user.wallet = { credits: (wallet as any).credits };
     } catch { /* ignore wallet errors */ }
 
@@ -85,3 +85,4 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 };
 
 export default authMiddleware;
+
