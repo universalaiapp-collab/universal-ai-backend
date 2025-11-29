@@ -1,4 +1,4 @@
-﻿import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 

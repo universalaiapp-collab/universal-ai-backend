@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Minimal OpenAI adapter (TypeScript)
  * Replace or expand with real SDK calls later.
  */

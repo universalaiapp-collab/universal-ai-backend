@@ -1,4 +1,4 @@
-﻿/**
+/**
  * retry.ts
  * Simple retry-with-exponential-backoff + jitter for async functions.
  * Usage: await retry(() => apiCall(...), { retries: 3, minDelayMs: 200, maxDelayMs: 2000 });
@@ -32,7 +32,7 @@ export async function retry<T>(fn: () => Promise<T>, opts: RetryOptions = {}): P
         const jitterVal = Math.floor(Math.random() * (delay - minDelayMs + 1));
         delay = Math.max(minDelayMs, Math.min(maxDelayMs, minDelayMs + jitterVal));
       }
-      try { console.warn(`retry: attempt ${attempt}/${retries} failed — waiting ${delay}ms`); } catch {}
+      try { console.warn(`retry: attempt ${attempt}/${retries} failed � waiting ${delay}ms`); } catch {}
       await sleep(delay);
     }
   }

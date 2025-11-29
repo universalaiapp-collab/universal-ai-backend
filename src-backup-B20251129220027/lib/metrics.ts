@@ -1,4 +1,4 @@
-﻿import { MetricsModel } from "../models/metrics";
+import { MetricsModel } from "../models/metrics";
 
 export async function writeMetric(payload: any) {
   try {

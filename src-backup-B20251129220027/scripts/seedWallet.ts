@@ -1,4 +1,4 @@
-﻿// scripts/seedWallet.ts
+// scripts/seedWallet.ts
 // usage: node scripts/seedWallet.js userEmail initialCredits
 import mongoose from 'mongoose';
 import WalletModel from '../models/wallet.model';

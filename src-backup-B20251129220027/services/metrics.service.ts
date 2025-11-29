@@ -1,4 +1,4 @@
-﻿/**
+/**
  * src/services/metrics.service.ts
  * Mongo-persisting metrics service
  *
@@ -123,7 +123,7 @@ export async function queryMetrics(q: string, limit = 100) {
   }
 }
 
-/** peekMetricsBuffer — useful for debugging / admin */
+/** peekMetricsBuffer � useful for debugging / admin */
 export function peekMetricsBuffer() {
   return METRICS_BUF.slice(-500).reverse();
 }

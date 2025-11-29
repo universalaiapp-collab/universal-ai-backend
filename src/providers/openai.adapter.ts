@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Minimal typed OpenAI adapter stub.
  * Replace with real SDK calls later.
  */

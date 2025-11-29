@@ -1,4 +1,4 @@
-﻿import { MongoClient, Db } from "mongodb";
+import { MongoClient, Db } from "mongodb";
 
 const MONGO_URL = process.env.MONGO_URL || "mongodb://localhost:27017";
 const MONGO_DB = process.env.MONGO_DB || "universalai";

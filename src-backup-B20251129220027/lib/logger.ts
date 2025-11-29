@@ -1,4 +1,4 @@
-﻿export const logger = {
+export const logger = {
   info: (...args: any[]) => {
     try { console.info(...args); } catch {}
   },

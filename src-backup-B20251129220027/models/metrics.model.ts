@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Temporary pragmatic type for IMetrics to avoid mongoose Document typing conflicts.
  * Replace with a proper typed model later.
  */

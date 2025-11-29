@@ -1,4 +1,4 @@
-﻿import axios from "axios";
+import axios from "axios";
 import { ProviderConfig } from "../config/providers";
 
 export async function callGemini(

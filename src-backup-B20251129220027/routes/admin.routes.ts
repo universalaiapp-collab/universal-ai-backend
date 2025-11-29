@@ -1,4 +1,4 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 import { getMetrics, clearMetrics } from "../controllers/admin.metrics.controller";
 import { requireAdmin } from "../middleware/admin.auth";
 

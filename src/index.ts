@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Minimal TypeScript server (fixed)
  * - GET /health -> { ok: true }
  * - POST /api/v1/chat -> echoes message back
