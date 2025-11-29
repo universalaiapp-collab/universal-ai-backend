@@ -1,13 +1,22 @@
-{
+﻿{
   "compilerOptions": {
     "target": "ES2020",
-    "module": "commonjs",
-    "rootDir": "./src",
-    "outDir": "./dist",
+    "module": "CommonJS",
+    "lib": ["ES2020"],
+    "outDir": "dist",
+    "rootDir": "src",
     "strict": false,
+    "noImplicitAny": false,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
     "moduleResolution": "node",
-    "skipLibCheck": true
-  }
+    "forceConsistentCasingInFileNames": false,
+    "inlineSourceMap": false,
+    "skipDefaultLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "src-backup-tmp", "**/*.spec.ts", "scripts/**"]
 }
