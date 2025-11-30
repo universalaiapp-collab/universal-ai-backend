@@ -1,37 +1,35 @@
 ﻿import fetch from "node-fetch";
 import { retryWithBackoff } from "../utils/retry-wrapper";
+import { ProviderResponse } from "./openai.adapter";
 
-export interface ProviderResponse {
-  success: boolean;
-  data?: any;
-  error?: any;
-  costEstimate?: number;
-}
-
-export class OpenAIAdapter {
+export class AnthropicAdapter {
   private apiKey: string;
   private base: string;
 
-  constructor(apiKey: string, base = process.env.OPENAI_BASE || "https://api.openai.com/v1") {
+  constructor(apiKey: string, base = process.env.ANTHROPIC_BASE || "https://api.anthropic.com") {
     this.apiKey = apiKey;
     this.base = base;
   }
 
   async callChat(payload: { model: string; messages: any[]; max_tokens?: number }): Promise<ProviderResponse> {
-    const url = `${this.base}/chat/completions`;
+    const url = `${this.base}/v1/complete`;
     try {
       const result = await retryWithBackoff(async () => {
         const res = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${this.apiKey}`,
+            "x-api-key": this.apiKey,
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            model: payload.model,
+            prompt: payload.messages.map(m => (m.role === "user" ? m.content : "")).join("\n"),
+            max_tokens: payload.max_tokens || 512,
+          }),
         });
         if (!res.ok) {
           const text = await res.text();
-          const error = new Error(`OpenAI error ${res.status}: ${text}`);
+          const error = new Error(`Anthropic error ${res.status}: ${text}`);
           (error as any).status = res.status;
           throw error;
         }
@@ -47,7 +45,8 @@ export class OpenAIAdapter {
   estimateCost(payload: { model: string; messages: any[]; max_tokens?: number }) {
     const chars = payload.messages.map(m => m.content || "").join("").length;
     const tokens = Math.ceil(chars / 4) + (payload.max_tokens || 0);
-    const ratePerToken = payload.model && payload.model.includes("gpt-4") ? 0.00006 : 0.00002;
+    // crude rate
+    const ratePerToken = 0.000025;
     return tokens * ratePerToken;
   }
 }
