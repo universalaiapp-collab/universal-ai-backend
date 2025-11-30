@@ -1,0 +1,3 @@
+src-backup-*/
+.env.bak
+.env

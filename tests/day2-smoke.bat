@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 SET BASE=http://localhost:5000
 SET ADMIN_API_KEY=admin-secret-key
 

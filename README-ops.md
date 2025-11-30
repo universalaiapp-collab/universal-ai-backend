@@ -1,4 +1,4 @@
-# universal-ai-backend - ops scripts
+﻿# universal-ai-backend - ops scripts
 
 This repo contains wallet auditing 
 - scripts/auditWallets.js

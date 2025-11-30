@@ -1,5 +1,5 @@
-@echo off
-REM daily-walletDoctor.bat — runs walletDoctor locally on Windows and writes a timestamped log
+﻿@echo off
+REM daily-walletDoctor.bat â€” runs walletDoctor locally on Windows and writes a timestamped log
 
 setlocal enabledelayedexpansion
 

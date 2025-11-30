@@ -1,4 +1,4 @@
-// scripts/auditWallets.js
+﻿// scripts/auditWallets.js
 const mongoose = require('mongoose');
 
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/universal-ai';

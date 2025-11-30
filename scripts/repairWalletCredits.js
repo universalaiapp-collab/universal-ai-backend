@@ -1,4 +1,4 @@
-// scripts/repairWalletCredits.js
+﻿// scripts/repairWalletCredits.js
 // Usage: node scripts/repairWalletCredits.js <userId> [startingBalance]
 const mongoose = require('mongoose');
 const [,, userId, startingArg] = process.argv;

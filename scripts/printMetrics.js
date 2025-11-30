@@ -1,4 +1,4 @@
-// scripts/printMetrics.js
+﻿// scripts/printMetrics.js
 const mongoose = require('mongoose');
 const Metrics = require('../src/models/metrics.model');
 

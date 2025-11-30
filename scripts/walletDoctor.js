@@ -1,4 +1,4 @@
-// scripts/walletDoctor.js
+﻿// scripts/walletDoctor.js
 //
 // Purpose:
 //  - Scan all wallets and report any mismatches where

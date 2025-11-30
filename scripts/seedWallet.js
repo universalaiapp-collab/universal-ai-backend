@@ -1,4 +1,4 @@
-// scripts/seedWallet.js (JS)
+﻿// scripts/seedWallet.js (JS)
 const mongoose = require('mongoose');
 
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/universal-ai';

@@ -1,4 +1,4 @@
-// scripts/setDailyUsed.js
+﻿// scripts/setDailyUsed.js
 const mongoose = require('mongoose');
 const User = require('../src/models/user.model');
 

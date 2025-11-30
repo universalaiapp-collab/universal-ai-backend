@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 REM snapshot-and-repair.bat
 REM Usage: snapshot-and-repair.bat user@example.com [startingBalance]
 REM Example: snapshot-and-repair.bat shubh@example.com

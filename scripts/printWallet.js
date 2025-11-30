@@ -1,4 +1,4 @@
-// scripts/printWallet.js
+﻿// scripts/printWallet.js
 const mongoose = require('mongoose');
 const Wallet = require('../src/models/wallet.model');
 

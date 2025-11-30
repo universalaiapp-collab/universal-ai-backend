@@ -1,4 +1,4 @@
-// scripts/curlTest.js
+﻿// scripts/curlTest.js
 const http = require('http');
 
 const data = JSON.stringify({ prompt: "quick test" });

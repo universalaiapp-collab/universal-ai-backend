@@ -1,4 +1,4 @@
-// scripts/restoreWalletFromSnapshot.js
+﻿// scripts/restoreWalletFromSnapshot.js
 // Usage: node scripts/restoreWalletFromSnapshot.js <userId>
 const mongoose = require('mongoose');
 const [,, userId] = process.argv;
