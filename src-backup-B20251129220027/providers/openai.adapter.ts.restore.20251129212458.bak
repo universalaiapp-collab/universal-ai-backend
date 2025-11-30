@@ -1,0 +1,33 @@
+﻿commit f7faf1caa57a71092ea4ce6ed569e392ca976ea6
+Author: shubhankar <shubhankar143.sss@gmail.com>
+Date:   Sat Nov 29 21:20:58 2025 +0530
+
+    Restore openai.adapter.ts (recovered from dist/git history)
+
+diff --git a/src/providers/openai.adapter.ts b/src/providers/openai.adapter.ts
+index e69de29..9b93246 100644
+--- a/src/providers/openai.adapter.ts
++++ b/src/providers/openai.adapter.ts
+@@ -0,0 +1,22 @@
++"use strict";
++Object.defineProperty(exports, "__esModule", { value: true });
++exports.callOpenAI = callOpenAI;
++// A simple stubbed adapter. Replace with real SDK later.
++async function callOpenAI(prompt, opts = {}) {
++    // Simulate work and tokens
++    const promptTokens = Math.ceil((prompt.length || 0) / 4);
++    const completionTokens = opts.maxTokens ? Math.min(opts.maxTokens, 200) : 100;
++    const text = `OpenAI stub response for: ${prompt.slice(0, 120)}`;
++    // Simulate forced failure for testing
++    if (opts.forceFail === 'openai') {
++        throw new Error('openai_forced_failure');
++    }
++    return {
++        provider: 'openai',
++        model: opts.model || 'openai/gpt-stub',
++        text,
++        promptTokens,
++        completionTokens
++    };
++}
++// @ts-nocheck

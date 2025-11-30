@@ -1,0 +1,25 @@
+﻿import { Router } from 'express';
+import orchController from '../controllers/orch.controller';
+import moderationMiddleware from '../middleware/moderation.middleware';
+import safetyMiddleware from '../middleware/safety.middleware';
+
+const router = Router();
+
+router.post('/', (req, res) => res.json({ ok: true, route: '/orch' }));
+
+router.post(
+  '/chat',
+  moderationMiddleware.requestModeration,
+  safetyMiddleware.requestSafetyGuard,
+  orchController.chatHandler
+);
+
+router.post('/generateImage', (req, res) =>
+  res.status(501).json({ ok: false, message: 'Not implemented: /orch/generateImage' })
+);
+
+router.post('/vision', (req, res) =>
+  res.status(501).json({ ok: false, message: 'Not implemented: /orch/vision' })
+);
+
+export default router;
