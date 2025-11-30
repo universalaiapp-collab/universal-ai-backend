@@ -1,0 +1,38 @@
+﻿/**
+ * eslint.config.js — flat ESLint config (CommonJS)
+ * - Uses `ignores` instead of `ignorePatterns`
+ * - Loads @typescript-eslint parser + plugin for TS files
+ */
+module.exports = [
+  { ignores: ["src-backup-*", ".env", ".env.bak"] },
+
+  {
+    files: ["**/*.ts", "**/*.tsx"],
+    languageOptions: {
+      parser: require.resolve("@typescript-eslint/parser"),
+      parserOptions: {
+        ecmaVersion: 2023,
+        sourceType: "module",
+        project: "./tsconfig.json"
+      }
+    },
+    plugins: {
+      "@typescript-eslint": require("@typescript-eslint/eslint-plugin")
+    },
+    rules: {
+      ...((() => {
+        try {
+          return require("@typescript-eslint/eslint-plugin").configs?.recommended?.rules || {};
+        } catch (e) {
+          return {};
+        }
+      })())
+    }
+  },
+
+  {
+    files: ["**/*.js"],
+    languageOptions: { ecmaVersion: 2023, sourceType: "module" },
+    rules: {}
+  }
+];

@@ -1,0 +1,35 @@
+﻿/**
+ * Minimal ESLint flat config that keeps ignore rules
+ * and uses @typescript-eslint for .ts/.tsx files.
+ * This file intentionally avoids the 'root' key (flat config).
+ */
+module.exports = [
+  {
+    // top-level ignores (flat-config style)
+    ignores: ['src-backup-*', '.env', '.env.bak'],
+  },
+  {
+    // TypeScript files: use @typescript-eslint parser & plugin
+    files: ['**/*.ts', '**/*.tsx'],
+    languageOptions: {
+      parser: require.resolve('@typescript-eslint/parser'),
+      parserOptions: {
+        project: './tsconfig.json',
+        tsconfigRootDir: __dirname,
+        ecmaVersion: 2023,
+        sourceType: 'module'
+      }
+    },
+    plugins: {
+      // load plugin implementation directly so flat config can use it
+      '@typescript-eslint': require('@typescript-eslint/eslint-plugin')
+    },
+    // enable the recommended ruleset from the plugin (kept minimal)
+    rules: {}
+  },
+  {
+    // JS files: default environment
+    files: ['**/*.js'],
+    languageOptions: { ecmaVersion: 2023, sourceType: 'module' }
+  }
+];

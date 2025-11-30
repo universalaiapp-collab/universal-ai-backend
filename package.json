@@ -14,7 +14,8 @@
         "printWallet": "node scripts/printWallet.js",
         "printMetrics": "node scripts/printMetrics.js",
         "build": "tsc -p tsconfig.json",
-        "lint-staged": "npx lint-staged"
+        "lint-staged": "npx lint-staged",
+        "prepare": "husky install"
     },
     "keywords": [],
     "author": "universalaiapp-collab",
@@ -43,6 +44,7 @@
         "@types/node": "^24.10.1",
         "@typescript-eslint/eslint-plugin": "^8.48.0",
         "@typescript-eslint/parser": "^8.48.0",
+        "eslint-formatter-unix": "^9.0.1",
         "husky": "^9.1.7",
         "lint-staged": "^16.2.7",
         "nodemon": "^3.1.11",
