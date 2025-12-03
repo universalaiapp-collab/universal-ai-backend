@@ -1,19 +1,16 @@
-﻿/**
- * Provider ordering helper.
- * Reads PROVIDER_ORDER env var like "openai,anthropic,local"
- */
-export function getProviderOrder(): string[] {
-  const env = process.env.PROVIDER_ORDER || "";
-  if (env.trim()) {
-    return env.split(",").map((s) => s.trim()).filter(Boolean);
-  }
-  return ["openai", "anthropic", "local"];
-}
+﻿import { OpenAIAdapter } from "./openai.adapter";
+import { AnthropicAdapter } from "./anthropic.adapter";
+import { GoogleAdapter } from "./google.adapter";
+import { MetaAdapter } from "./meta.adapter";
 
 /**
- * Resolve providers list (adapterPath is a string we can later import dynamically)
+ * Export ready-to-use instances for legacy imports that expect named adapters
+ * e.g. import { openaiAdapter } from "../providers/openai.adapter";
+ * This file provides openaiAdapter, anthropicAdapter, googleAdapter, metaAdapter
+ * using env keys if present.
  */
-export async function resolveProviders(): Promise<{ name: string; adapterPath?: string }[]> {
-  const order = getProviderOrder();
-  return order.map((name) => ({ name, adapterPath: `./\${name}.adapter` })); // keep as template string for later runtime replacement
-}
+
+export const openaiAdapter = new OpenAIAdapter(process.env.OPENAI_API_KEY || "", process.env.OPENAI_BASE);
+export const anthropicAdapter = new AnthropicAdapter(process.env.ANTHROPIC_API_KEY || "", process.env.ANTHROPIC_BASE);
+export const googleAdapter = new GoogleAdapter(process.env.GOOGLE_API_KEY || "", process.env.GOOGLE_BASE);
+export const metaAdapter = new MetaAdapter(process.env.META_API_KEY || "", process.env.META_BASE);
